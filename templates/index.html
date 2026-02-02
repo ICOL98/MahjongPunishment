@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麻将惩罚抽取</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --accent: #e94560;
+            --accent-light: #ff6b6b;
+            --text: #eee;
+            --text-muted: #a0a0a0;
+            --success: #4ecca3;
+            --mahjong-tile: #2d5a27;
+        }
+        
+        body {
+            font-family: 'ZCOOL KuaiLe', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f3460 100%);
+            min-height: 100vh;
+            color: var(--text);
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 30px;
+            background: linear-gradient(90deg, var(--accent-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 1px solid rgba(233, 69, 96, 0.2);
+        }
+        
+        .phase-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+        }
+        
+        .phase-input { background: rgba(233, 69, 96, 0.3); color: var(--accent-light); }
+        .phase-shuffle { background: rgba(255, 193, 7, 0.3); color: #ffc107; }
+        .phase-draw { background: rgba(78, 204, 163, 0.3); color: var(--success); }
+        .phase-view { background: rgba(78, 204, 163, 0.3); color: var(--success); }
+        
+        .player-turn {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: var(--accent-light);
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            background: rgba(0,0,0,0.2);
+            color: var(--text);
+            font-size: 1rem;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        input[type="text"]::placeholder {
+            color: var(--text-muted);
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+        }
+        
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: var(--text);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            filter: brightness(1.1);
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.9rem;
+        }
+        
+        .punishment-list {
+            list-style: none;
+            margin: 16px 0;
+        }
+        
+        .punishment-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+        }
+        
+        .punishment-item .content {
+            flex: 1;
+            margin-right: 12px;
+        }
+        
+        .punishment-item .actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .draw-section {
+            text-align: center;
+            padding: 20px 0;
+        }
+        
+        .player-select {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+        
+        .player-btn {
+            padding: 12px 20px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+        }
+        
+        .player-btn:hover, .player-btn.selected {
+            border-color: var(--accent);
+            background: rgba(233, 69, 96, 0.2);
+            color: var(--accent-light);
+        }
+        
+        .draw-result {
+            margin: 24px 0;
+            padding: 30px;
+            background: linear-gradient(135deg, var(--mahjong-tile), #1e3d1a);
+            border-radius: 16px;
+            font-size: 1.3rem;
+            line-height: 1.6;
+            border: 2px dashed rgba(255,255,255,0.2);
+            display: none;
+        }
+        
+        .draw-result.show {
+            display: block;
+            animation: reveal 0.5s ease;
+        }
+        
+        @keyframes reveal {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .lookup-section {
+            margin-top: 24px;
+        }
+        
+        .lookup-result {
+            margin-top: 16px;
+            padding: 20px;
+            background: rgba(78, 204, 163, 0.15);
+            border-radius: 8px;
+            border-left: 4px solid var(--success);
+            display: none;
+        }
+        
+        .lookup-result.show {
+            display: block;
+        }
+        
+        .lookup-error {
+            border-left-color: var(--accent);
+            background: rgba(233, 69, 96, 0.15);
+        }
+        
+        .punishment-summary {
+            margin-bottom: 24px;
+            padding: 16px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }
+        
+        .summary-counts {
+            margin-bottom: 16px;
+            color: var(--text-muted);
+        }
+        
+        .summary-player {
+            margin-bottom: 12px;
+        }
+        
+        .summary-player-title {
+            color: var(--accent-light);
+            margin-bottom: 4px;
+        }
+        
+        .summary-player-items {
+            padding-left: 20px;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+        }
+        
+        .summary-item-drawn {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+        
+        .confirm-shuffle-wrap {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .combined-list-title {
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .progress-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .progress-dot {
+            min-width: 36px;
+            height: 28px;
+            padding: 0 8px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.2);
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+        }
+        
+        .progress-dot.done {
+            background: var(--success);
+        }
+        
+        .progress-dot.current {
+            background: var(--accent);
+            box-shadow: 0 0 12px var(--accent);
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        
+        .tab.active {
+            background: rgba(233, 69, 96, 0.2);
+            border-color: var(--accent);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .reset-btn {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        .reset-btn:hover {
+            background: rgba(233, 69, 96, 0.2);
+            color: var(--accent-light);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🀄 麻将惩罚抽取</h1>
+        
+        <!-- 输入阶段 -->
+        <div id="inputPhase" class="card">
+            <span class="phase-badge phase-input">输入阶段</span>
+            <div class="progress-dots" id="progressDots">
+                <span class="progress-dot" data-idx="0" title="HT">HT</span>
+                <span class="progress-dot" data-idx="1" title="SJ1">SJ1</span>
+                <span class="progress-dot" data-idx="2" title="LY">LY</span>
+                <span class="progress-dot" data-idx="3" title="ZKL">ZKL</span>
+            </div>
+            <div class="player-turn" id="playerTurn"></div>
+            <div class="input-group">
+                <input type="text" id="punishmentInput" placeholder="输入一个惩罚内容...">
+                <button class="btn-primary" onclick="addPunishment()">添加</button>
+            </div>
+            <ul class="punishment-list" id="punishmentList"></ul>
+            <button class="btn-success" onclick="confirmPunishments()" id="confirmBtn">确认我的惩罚列表</button>
+        </div>
+        
+        <!-- 确认打乱 / 抽取阶段 -->
+        <div id="drawPhase" class="card hidden">
+            <span class="phase-badge" id="drawPhaseBadge">抽取阶段</span>
+            <div id="punishmentSummary" class="punishment-summary"></div>
+            <div id="confirmShuffleWrap" class="confirm-shuffle-wrap" style="display: none;">
+                <button class="btn-primary" onclick="confirmShuffle()">确认并且打乱顺序</button>
+            </div>
+            <div class="draw-section" id="drawSection">
+                <p style="margin-bottom: 16px;">请选择你的身份，然后抽取惩罚</p>
+                <div class="player-select" id="playerSelect">
+                    <button class="player-btn" data-player="HT">HT</button>
+                    <button class="player-btn" data-player="SJ1">SJ1</button>
+                    <button class="player-btn" data-player="LY">LY</button>
+                    <button class="player-btn" data-player="ZKL">ZKL</button>
+                </div>
+                <button class="btn-primary" id="drawBtn" onclick="drawPunishment()">抽取惩罚</button>
+                <div class="draw-result" id="drawResult">
+                    <div id="drawResultText"></div>
+                    <button class="btn-success" style="margin-top: 16px;" onclick="acknowledgeDraw()">已知晓</button>
+                </div>
+            </div>
+            
+            <div class="lookup-section" id="lookupSection">
+                <h3 style="margin-bottom: 12px;">忘记了自己的惩罚？</h3>
+                <div class="input-group">
+                    <input type="text" id="lookupName" placeholder="输入你的名字（如：HT、SJ1、LY、ZKL）">
+                    <button class="btn-secondary" onclick="lookupPunishment()">查看我的惩罚</button>
+                </div>
+                <div class="lookup-result" id="lookupResult">
+                    <div id="lookupResultText"></div>
+                    <button class="btn-success" style="margin-top: 12px;" onclick="acknowledgeLookup()">已知晓</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn-secondary reset-btn" id="redrawBtn" onclick="redrawPunishments()">重新抽取惩罚</button>
+            <button class="btn-secondary reset-btn" onclick="resetGame()">重新开始游戏</button>
+        </div>
+    </div>
+
+    <script>
+        let currentPlayer = null;
+        let currentPunishments = [];
+        
+        async function fetchState() {
+            const res = await fetch('/api/state');
+            return res.json();
+        }
+        
+        async function fetchCurrentPunishments() {
+            const res = await fetch('/api/current-punishments');
+            return res.json();
+        }
+        
+        function updateUI(state) {
+            const inputPhase = document.getElementById('inputPhase');
+            const drawPhase = document.getElementById('drawPhase');
+            
+            if (state.phase === 'input') {
+                inputPhase.classList.remove('hidden');
+                drawPhase.classList.add('hidden');
+                
+                document.getElementById('playerTurn').textContent = 
+                    `${state.current_player_name}，请输入你的惩罚（仅你自己可见）`;
+                
+                // 更新进度点
+                document.querySelectorAll('.progress-dot').forEach((dot, i) => {
+                    dot.className = 'progress-dot';
+                    if (state.player_confirmed[i]) dot.classList.add('done');
+                    if (i === state.current_player_index) dot.classList.add('current');
+                });
+                
+                loadCurrentPunishments();
+                document.getElementById('redrawBtn').style.display = 'none';
+            } else if (state.phase === 'shuffle_confirm') {
+                inputPhase.classList.add('hidden');
+                drawPhase.classList.remove('hidden');
+                document.getElementById('drawPhaseBadge').textContent = '确认打乱';
+                document.getElementById('drawPhaseBadge').className = 'phase-badge phase-shuffle';
+                document.getElementById('confirmShuffleWrap').style.display = '';
+                document.getElementById('drawSection').style.display = 'none';
+                document.getElementById('lookupSection').style.display = 'none';
+                document.getElementById('redrawBtn').style.display = 'none';
+                document.getElementById('drawResult').classList.remove('show');
+                document.getElementById('lookupResult').classList.remove('show');
+                loadPunishmentSummary();
+            } else {
+                inputPhase.classList.add('hidden');
+                drawPhase.classList.remove('hidden');
+                document.getElementById('drawPhaseBadge').textContent = '抽取阶段';
+                document.getElementById('drawPhaseBadge').className = 'phase-badge phase-draw';
+                document.getElementById('confirmShuffleWrap').style.display = 'none';
+                document.getElementById('drawSection').style.display = '';
+                document.getElementById('lookupSection').style.display = '';
+                document.getElementById('redrawBtn').style.display = '';
+                document.getElementById('drawResult').classList.remove('show');
+                document.getElementById('lookupResult').classList.remove('show');
+                loadPunishmentSummary();
+            }
+        }
+        
+        async function loadPunishmentSummary() {
+            try {
+                const res = await fetch('/api/punishment-summary');
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.mode === 'per_player') {
+                    const summary = data.summary || [];
+                    const countsText = summary.map(s => `${s.player_name}添加了${s.count}条`).join('，');
+                    const listsHtml = summary.map(s => {
+                        const items = s.masked_items.map((item, i) => {
+                            const text = typeof item === 'object' ? item.masked : item;
+                            const drawn = typeof item === 'object' && item.drawn;
+                            const cls = drawn ? ' class="summary-item-drawn"' : '';
+                            return `<span${cls}>${i + 1}. ${text}</span>`;
+                        }).join('<br>');
+                        return `<div class="summary-player">
+                            <div class="summary-player-title">${escapeHtml(s.player_name)}的惩罚：</div>
+                            <div class="summary-player-items">${items}</div>
+                        </div>`;
+                    }).join('');
+                    document.getElementById('punishmentSummary').innerHTML = 
+                        `<div class="summary-counts">${countsText}</div>${listsHtml}`;
+                } else if (data.mode === 'combined') {
+                    const items = (data.combined_items || []).map((item, i) => {
+                        const text = typeof item === 'object' ? item.masked : item;
+                        const drawn = typeof item === 'object' && item.drawn;
+                        const cls = drawn ? ' class="summary-item-drawn"' : '';
+                        return `<span${cls}>${i + 1}. ${text}</span>`;
+                    }).join('<br>');
+                    const used = data.used_count || 0;
+                    const total = data.total_count || (data.combined_items || []).length;
+                    document.getElementById('punishmentSummary').innerHTML = 
+                        `<div class="combined-list-title">打乱后的惩罚列表（已划掉 ${used} / 共 ${total} 条）：</div>
+                         <div class="summary-player-items">${items}</div>`;
+                } else {
+                    document.getElementById('punishmentSummary').innerHTML = '';
+                }
+            } catch (e) {
+                document.getElementById('punishmentSummary').innerHTML = '';
+            }
+        }
+        
+        async function confirmShuffle() {
+            const res = await fetch('/api/confirm-shuffle', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                updateUI(data);
+            } else {
+                alert(data.error || '操作失败');
+            }
+        }
+        
+        async function loadCurrentPunishments() {
+            const data = await fetchCurrentPunishments();
+            currentPunishments = data.punishments || [];
+            renderPunishmentList();
+        }
+        
+        function renderPunishmentList() {
+            const list = document.getElementById('punishmentList');
+            list.innerHTML = currentPunishments.map((p, i) => `
+                <li class="punishment-item">
+                    <span class="content">${escapeHtml(p)}</span>
+                    <div class="actions">
+                        <button class="btn-secondary btn-small" onclick="editPunishment(${i})">编辑</button>
+                        <button class="btn-secondary btn-small" onclick="deletePunishment(${i})">删除</button>
+                    </div>
+                </li>
+            `).join('');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        async function addPunishment() {
+            const input = document.getElementById('punishmentInput');
+            const content = input.value.trim();
+            if (!content) {
+                alert('请输入惩罚内容');
+                return;
+            }
+            const res = await fetch('/api/add-punishment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                currentPunishments = data.punishments;
+                renderPunishmentList();
+                input.value = '';
+            } else {
+                alert(data.error || '添加失败');
+            }
+        }
+        
+        async function editPunishment(index) {
+            const newContent = prompt('修改惩罚内容：', currentPunishments[index]);
+            if (newContent === null) return;
+            const content = newContent.trim();
+            if (!content) {
+                alert('内容不能为空');
+                return;
+            }
+            const res = await fetch('/api/update-punishment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ index, content })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                currentPunishments = data.punishments;
+                renderPunishmentList();
+            } else {
+                alert(data.error || '更新失败');
+            }
+        }
+        
+        async function deletePunishment(index) {
+            if (!confirm('确定删除这条惩罚？')) return;
+            const res = await fetch('/api/delete-punishment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ index })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                currentPunishments = data.punishments;
+                renderPunishmentList();
+            } else {
+                alert(data.error || '删除失败');
+            }
+        }
+        
+        async function confirmPunishments() {
+            if (currentPunishments.length === 0) {
+                alert('至少需要添加一个惩罚');
+                return;
+            }
+            const res = await fetch('/api/confirm', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                if (data.phase === 'draw') {
+                    updateUI(data);
+                    currentPlayer = null;
+                    document.querySelectorAll('.player-btn').forEach(btn => btn.classList.remove('selected'));
+                } else {
+                    updateUI(data);
+                }
+            } else {
+                alert(data.error || '确认失败');
+            }
+        }
+        
+        document.querySelectorAll('.player-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.player-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                currentPlayer = btn.dataset.player;
+                document.getElementById('drawResult').classList.remove('show');
+            });
+        });
+        
+        async function drawPunishment() {
+            if (!currentPlayer) {
+                alert('请先选择你的身份');
+                return;
+            }
+            const res = await fetch('/api/draw', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ player_name: currentPlayer })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                document.getElementById('drawResultText').innerHTML = 
+                    `<strong>${currentPlayer}</strong> 抽到的惩罚是：<br><br>${escapeHtml(data.punishment)}`;
+                document.getElementById('drawResult').classList.add('show');
+                loadPunishmentSummary();
+            } else {
+                if (data.punishment) {
+                    document.getElementById('drawResultText').innerHTML = 
+                        `你已抽过：<br><br>${escapeHtml(data.punishment)}`;
+                    document.getElementById('drawResult').classList.add('show');
+                } else {
+                    alert(data.error || '抽取失败');
+                }
+            }
+        }
+        
+        function acknowledgeDraw() {
+            document.getElementById('drawResult').classList.remove('show');
+        }
+        
+        async function lookupPunishment() {
+            const name = document.getElementById('lookupName').value.trim();
+            if (!name) {
+                alert('请输入你的名字');
+                return;
+            }
+            const res = await fetch(`/api/my-punishment?name=${encodeURIComponent(name)}`);
+            const data = await res.json();
+            const resultEl = document.getElementById('lookupResult');
+            const textEl = document.getElementById('lookupResultText');
+            resultEl.classList.add('show');
+            if (res.ok) {
+                resultEl.classList.remove('lookup-error');
+                textEl.innerHTML = `<strong>${escapeHtml(data.player_name)}</strong> 的惩罚是：<br><br>${escapeHtml(data.punishment)}`;
+            } else {
+                resultEl.classList.add('lookup-error');
+                textEl.textContent = data.error || '未找到';
+            }
+        }
+        
+        function acknowledgeLookup() {
+            document.getElementById('lookupResult').classList.remove('show');
+        }
+        
+        async function redrawPunishments() {
+            if (!confirm('确定要重新抽取吗？本轮已抽取的惩罚将不会再次出现，每人将重新抽取一次。')) return;
+            const res = await fetch('/api/redraw', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                updateUI(data);
+                loadPunishmentSummary();
+                document.getElementById('drawResult').classList.remove('show');
+                document.getElementById('lookupResult').classList.remove('show');
+                currentPlayer = null;
+                document.querySelectorAll('.player-btn').forEach(btn => btn.classList.remove('selected'));
+            } else {
+                alert(data.error || '操作失败');
+            }
+        }
+        
+        async function resetGame() {
+            if (!confirm('确定要重新开始吗？所有数据将被清空。')) return;
+            const res = await fetch('/api/reset', { method: 'POST' });
+            const data = await res.json();
+            updateUI(data);
+            document.getElementById('punishmentInput').value = '';
+            document.getElementById('lookupName').value = '';
+            document.getElementById('lookupResult').classList.remove('show');
+        }
+        
+        async function init() {
+            const state = await fetchState();
+            updateUI(state);
+        }
+        
+        init();
+    </script>
+</body>
+</html>
